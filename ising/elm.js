@@ -11040,7 +11040,64 @@ Elm.Main.make = function (_elm) {
    $String = Elm.String.make(_elm),
    $Time = Elm.Time.make(_elm);
    var _op = {};
+   var samplingSignal = $Time.every(5 * $Time.second);
    var Point = F2(function (a,b) {    return {index: a,value: b};});
+   var tupleListAverage = function (list) {
+      var _p0 = A3($List.foldl,
+      F2(function (_p2,_p1) {    var _p3 = _p2;var _p4 = _p1;return {ctor: "_Tuple2",_0: _p3._0 + _p4._0,_1: _p3._1 + _p4._1};}),
+      {ctor: "_Tuple2",_0: 0,_1: 0},
+      list);
+      var x = _p0._0;
+      var y = _p0._1;
+      return {ctor: "_Tuple2"
+             ,_0: x / function (_p5) {
+                return $Basics.toFloat($List.length(_p5));
+             }(list)
+             ,_1: y / function (_p6) {
+                return $Basics.toFloat($List.length(_p6));
+             }(list)};
+   };
+   var listAverage = function (list) {    return A3($List.foldl,F2(function (x,y) {    return x + y;}),0,list) / $Basics.toFloat($List.length(list));};
+   var standardDeviation = function (list) {
+      var n = $Basics.toFloat($List.length(list));
+      var avg = listAverage(list);
+      var d = A3($List.foldl,F2(function (x,y) {    return x + y;}),0,A2($List.map,function (v) {    return Math.pow(v - avg,2);},list));
+      return $Basics.sqrt(d / (n - 1));
+   };
+   var listTakeLast = F2(function (n,list) {    return A2($List.drop,$List.length(list) - n,list);});
+   var listTakeLastPercentage = F2(function (p,list) {
+      return A2(listTakeLast,
+      function (_p7) {
+         return $Basics.round(A2(F2(function (x,y) {    return x * y;}),p,$Basics.toFloat($List.length(_p7))));
+      }(list),
+      list);
+   });
+   var listSample = F2(function (list,points) {
+      var listSample$ = F3(function (agg,rest,points) {
+         listSample$: while (true) if (_U.cmp($List.length(rest),points) < 1) return _U.eq($List.length(rest),1) ? $List.concat(_U.list([agg
+                                                                                                                                        ,rest])) : $List.concat(_U.list([agg
+                                                                                                                                                                        ,_U.list([tupleListAverage(A2($List.take,
+                                                                                                                                                                        $List.length(rest) - 1,
+                                                                                                                                                                        rest))])
+                                                                                                                                                                        ,A2(listTakeLast,
+                                                                                                                                                                        1,
+                                                                                                                                                                        rest)]));
+         else {
+               var ps = tupleListAverage(A2($List.take,points,rest));
+               var agg$ = A2($List.append,agg,_U.list([ps]));
+               var _v2 = agg$,_v3 = A2($List.drop,points,rest),_v4 = points;
+               agg = _v2;
+               rest = _v3;
+               points = _v4;
+               continue listSample$;
+            }
+      });
+      return A3(listSample$,A2($List.take,1,list),A2($List.drop,1,list),points);
+   });
+   var sampledTo = F2(function (points,list) {
+      var sampleFrom = $List.length(list) / points | 0;
+      return _U.cmp(sampleFrom,1) > 0 ? A2(listSample,list,sampleFrom) : list;
+   });
    var numberInputWithLabel = F4(function (label,placeholder,value,signal) {
       return A2($Html.tr,
       _U.list([]),
@@ -11054,6 +11111,14 @@ Elm.Main.make = function (_elm) {
                       ,A3($Html$Events.on,"input",$Html$Events.targetValue,signal)]),
               _U.list([]))]))]));
    });
+   var floatToString = function (f) {
+      var s = $Basics.toString(f);
+      var separator = A2($String.contains,".",s) ? "." : ",";
+      var parts = A2($String.split,separator,s);
+      var a = A2($Maybe.withDefault,"0",$List.head(parts));
+      var b = A2($String.left,3,$String.concat(A2($Maybe.withDefault,_U.list(["0"]),$List.tail(parts))));
+      return A2($Basics._op["++"],a,A2($Basics._op["++"],".",b));
+   };
    var Model = function (a) {
       return function (b) {
          return function (c) {
@@ -11064,16 +11129,31 @@ Elm.Main.make = function (_elm) {
                         return function (h) {
                            return function (i) {
                               return function (j) {
-                                 return {randomSeed: a
-                                        ,spinMatrix: b
-                                        ,width: c
-                                        ,height: d
-                                        ,currentConfiguration: e
-                                        ,temperature: f
-                                        ,magneticFieldStrength: g
-                                        ,interactionStrength: h
-                                        ,running: i
-                                        ,energies: j};
+                                 return function (k) {
+                                    return function (l) {
+                                       return function (m) {
+                                          return function (n) {
+                                             return function (o) {
+                                                return {randomSeed: a
+                                                       ,spinMatrix: b
+                                                       ,width: c
+                                                       ,height: d
+                                                       ,steps: e
+                                                       ,currentConfiguration: f
+                                                       ,temperature: g
+                                                       ,magneticFieldStrength: h
+                                                       ,interactionStrength: i
+                                                       ,running: j
+                                                       ,currentStep: k
+                                                       ,totalEnergies: l
+                                                       ,totalMagnetizations: m
+                                                       ,avgEnergy: n
+                                                       ,avgMagnetization: o};
+                                             };
+                                          };
+                                       };
+                                    };
+                                 };
                               };
                            };
                         };
@@ -11085,9 +11165,10 @@ Elm.Main.make = function (_elm) {
       };
    };
    var ToggleRunning = {ctor: "ToggleRunning"};
-   var ChangeWindowSize = function (a) {    return {ctor: "ChangeWindowSize",_0: a};};
+   var ChangeMetropolisSteps = function (a) {    return {ctor: "ChangeMetropolisSteps",_0: a};};
    var RunMetropolis = {ctor: "RunMetropolis"};
-   var StepOneMetropolis = {ctor: "StepOneMetropolis"};
+   var runIsing = A2($Signal.map,function (_p8) {    return RunMetropolis;},$Time.every($Time.millisecond));
+   var StepMetropolis = {ctor: "StepMetropolis"};
    var ChangeInteractionStrength = function (a) {    return {ctor: "ChangeInteractionStrength",_0: a};};
    var ChangeMagneticFieldStrength = function (a) {    return {ctor: "ChangeMagneticFieldStrength",_0: a};};
    var ChangeTemperature = function (a) {    return {ctor: "ChangeTemperature",_0: a};};
@@ -11096,8 +11177,8 @@ Elm.Main.make = function (_elm) {
    var ChangeWidth = function (a) {    return {ctor: "ChangeWidth",_0: a};};
    var NoOp = {ctor: "NoOp"};
    var spinToDiv = function (spin) {
-      var _p0 = spin;
-      if (_p0.ctor === "Up") {
+      var _p9 = spin;
+      if (_p9.ctor === "Up") {
             return A2($Html.div,
             _U.list([$Html$Attributes.$class("spinUp")
                     ,$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "width",_1: "30px"}
@@ -11113,60 +11194,89 @@ Elm.Main.make = function (_elm) {
             _U.list([]));
          }
    };
+   var spinMagnetization = function (spin) {    var _p10 = spin;if (_p10.ctor === "Up") {    return 1;} else {    return -1;}};
    var boundaryCondition = F3(function (lowerLimit,upperLimit,index) {
       return _U.cmp(index,lowerLimit) < 0 ? upperLimit + index : _U.cmp(index,upperLimit - 1) > 0 ? index - upperLimit : index;
    });
-   var spinEnergy = function (spin) {    var _p1 = spin;if (_p1.ctor === "Up") {    return 1;} else {    return -1;}};
    var shape = function (spinMatrix) {
       var height = $Array.length(spinMatrix);
       var width = A2($Maybe.withDefault,0,A2($Maybe.map,$Array.length,A2($Array.get,0,spinMatrix)));
       return {ctor: "_Tuple2",_0: height,_1: width};
    };
-   var spinEnergyAt = F3(function (spinMatrix,i,j) {
-      var _p2 = shape(spinMatrix);
-      var height = _p2._0;
-      var width = _p2._1;
-      var i$ = A3(boundaryCondition,0,width,i);
-      var j$ = A3(boundaryCondition,0,height,j);
-      return A2($Maybe.withDefault,0,A2($Maybe.map,spinEnergy,A2($Maybe.andThen,A2($Array.get,j$,spinMatrix),$Array.get(i$))));
+   var spinMagnetizationAt = F3(function (spinMatrix,i,j) {
+      var _p11 = shape(spinMatrix);
+      var height = _p11._0;
+      var width = _p11._1;
+      var i$ = A3(boundaryCondition,0,height,i);
+      var j$ = A3(boundaryCondition,0,width,j);
+      return A2($Maybe.withDefault,0,A2($Maybe.map,spinMagnetization,A2($Maybe.andThen,A2($Array.get,i$,spinMatrix),$Array.get(j$))));
    });
    var pointEnergy = F5(function (spinMatrix,i,j,magneticFieldStrength,interactionStrength) {
-      var spin = A3(spinEnergyAt,spinMatrix,i,j);
-      var right = A3(spinEnergyAt,spinMatrix,i,j + 1);
-      var left = A3(spinEnergyAt,spinMatrix,i,j - 1);
-      var down = A3(spinEnergyAt,spinMatrix,i + 1,j);
-      var up = A3(spinEnergyAt,spinMatrix,i - 1,j);
+      var spin = A3(spinMagnetizationAt,spinMatrix,i,j);
+      var right = A3(spinMagnetizationAt,spinMatrix,i,j + 1);
+      var left = A3(spinMagnetizationAt,spinMatrix,i,j - 1);
+      var down = A3(spinMagnetizationAt,spinMatrix,i + 1,j);
+      var up = A3(spinMagnetizationAt,spinMatrix,i - 1,j);
       var neighbourSum = up + down + left + right;
       return -1 * magneticFieldStrength * spin - interactionStrength * spin * neighbourSum;
    });
-   var fullEnergy = F6(function (spinMatrix,i,j,magneticFieldStrength,interactionStrength,energy) {
-      fullEnergy: while (true) {
-         var _p3 = shape(spinMatrix);
-         var height = _p3._0;
-         var width = _p3._1;
-         if (_U.eq(i,height - 1) && _U.eq(j,width - 1)) return energy; else {
-               var energy$ = energy + A5(pointEnergy,spinMatrix,i,j,magneticFieldStrength,0.5 * interactionStrength);
+   var totalMagnetization = function (spinMatrix) {
+      var _p12 = shape(spinMatrix);
+      var height = _p12._0;
+      var width = _p12._1;
+      var totalMagnetization$ = F4(function (i,j,spinMatrix,magnetization) {
+         totalMagnetization$: while (true) if (_U.eq(i,height - 1) && _U.eq(j,width - 1)) return magnetization; else {
+               var magnetization$ = magnetization + A3(spinMagnetizationAt,spinMatrix,i,j);
                if (_U.eq(j,width - 1)) {
-                     var _v2 = spinMatrix,_v3 = i + 1,_v4 = 0,_v5 = magneticFieldStrength,_v6 = interactionStrength,_v7 = energy$;
-                     spinMatrix = _v2;
-                     i = _v3;
-                     j = _v4;
-                     magneticFieldStrength = _v5;
-                     interactionStrength = _v6;
-                     energy = _v7;
-                     continue fullEnergy;
+                     var _v7 = i + 1,_v8 = 0,_v9 = spinMatrix,_v10 = magnetization$;
+                     i = _v7;
+                     j = _v8;
+                     spinMatrix = _v9;
+                     magnetization = _v10;
+                     continue totalMagnetization$;
                   } else {
-                     var _v8 = spinMatrix,_v9 = i,_v10 = j + 1,_v11 = magneticFieldStrength,_v12 = interactionStrength,_v13 = energy$;
-                     spinMatrix = _v8;
-                     i = _v9;
-                     j = _v10;
-                     magneticFieldStrength = _v11;
-                     interactionStrength = _v12;
-                     energy = _v13;
-                     continue fullEnergy;
+                     var _v11 = i,_v12 = j + 1,_v13 = spinMatrix,_v14 = magnetization$;
+                     i = _v11;
+                     j = _v12;
+                     spinMatrix = _v13;
+                     magnetization = _v14;
+                     continue totalMagnetization$;
                   }
             }
-      }
+      });
+      return A4(totalMagnetization$,0,0,spinMatrix,0);
+   };
+   var totalEnergy = F3(function (spinMatrix,magneticFieldStrength,interactionStrength) {
+      var totalEnergy$ = F6(function (spinMatrix,i,j,magneticFieldStrength,interactionStrength,energy) {
+         totalEnergy$: while (true) {
+            var _p13 = shape(spinMatrix);
+            var height = _p13._0;
+            var width = _p13._1;
+            if (_U.eq(i,height - 1) && _U.eq(j,width - 1)) return energy; else {
+                  var energy$ = energy + A5(pointEnergy,spinMatrix,i,j,magneticFieldStrength,0.5 * interactionStrength);
+                  if (_U.eq(j,width - 1)) {
+                        var _v15 = spinMatrix,_v16 = i + 1,_v17 = 0,_v18 = magneticFieldStrength,_v19 = interactionStrength,_v20 = energy$;
+                        spinMatrix = _v15;
+                        i = _v16;
+                        j = _v17;
+                        magneticFieldStrength = _v18;
+                        interactionStrength = _v19;
+                        energy = _v20;
+                        continue totalEnergy$;
+                     } else {
+                        var _v21 = spinMatrix,_v22 = i,_v23 = j + 1,_v24 = magneticFieldStrength,_v25 = interactionStrength,_v26 = energy$;
+                        spinMatrix = _v21;
+                        i = _v22;
+                        j = _v23;
+                        magneticFieldStrength = _v24;
+                        interactionStrength = _v25;
+                        energy = _v26;
+                        continue totalEnergy$;
+                     }
+               }
+         }
+      });
+      return A6(totalEnergy$,spinMatrix,0,0,magneticFieldStrength,interactionStrength,0);
    });
    var IsingModel = function (a) {    return {matrix: a};};
    var Random = function (a) {    return {ctor: "Random",_0: a};};
@@ -11199,15 +11309,40 @@ Elm.Main.make = function (_elm) {
                       model.temperature,
                       function (str) {
                          return A2($Signal.message,address,ChangeTemperature(str));
+                      })
+                      ,A4(numberInputWithLabel,
+                      "Steps: ",
+                      "Steps",
+                      model.steps,
+                      function (str) {
+                         return A2($Signal.message,address,ChangeMetropolisSteps(str));
                       })]))
               ,A2($Html.br,_U.list([]),_U.list([]))
               ,A2($Html.button,_U.list([A2($Html$Events.onClick,address,ChangeConfiguration(Random(model.randomSeed)))]),_U.list([$Html.text("Randomize")]))
               ,A2($Html.button,_U.list([A2($Html$Events.onClick,address,ChangeConfiguration(Ups))]),_U.list([$Html.text("All up")]))
               ,A2($Html.button,_U.list([A2($Html$Events.onClick,address,ChangeConfiguration(Downs))]),_U.list([$Html.text("All down")]))
-              ,A2($Html.button,_U.list([A2($Html$Events.onClick,address,StepOneMetropolis)]),_U.list([$Html.text("Step")]))
+              ,A2($Html.button,_U.list([A2($Html$Events.onClick,address,StepMetropolis)]),_U.list([$Html.text("Step")]))
               ,A2($Html.button,_U.list([A2($Html$Events.onClick,address,ToggleRunning)]),_U.list([$Html.text(model.running ? "Stop" : "Start")]))
               ,A2($Html.br,_U.list([]),_U.list([]))
-              ,$Html.text($Basics.toString(A6(fullEnergy,model.spinMatrix,0,0,model.magneticFieldStrength,model.interactionStrength,0)))
+              ,$Html.text(A2($Basics._op["++"],
+              "Energy: ",
+              A2($Basics._op["++"],
+              floatToString(model.avgEnergy),
+              A2($Basics._op["++"],
+              "±",
+              function (_p14) {
+                 return floatToString(standardDeviation(A2(listTakeLastPercentage,0.85,_p14)));
+              }(A2($List.map,$Basics.snd,model.totalEnergies))))))
+              ,A2($Html.br,_U.list([]),_U.list([]))
+              ,$Html.text(A2($Basics._op["++"],
+              "Magnetization: ",
+              A2($Basics._op["++"],
+              floatToString(model.avgMagnetization),
+              A2($Basics._op["++"],
+              "±",
+              function (_p15) {
+                 return floatToString(standardDeviation(A2(listTakeLastPercentage,0.85,_p15)));
+              }(A2($List.map,$Basics.snd,model.totalMagnetizations))))))
               ,A2($Html.br,_U.list([]),_U.list([]))
               ,A2($Html.table,
               _U.list([]),
@@ -11224,38 +11359,43 @@ Elm.Main.make = function (_elm) {
    var Down = {ctor: "Down"};
    var Up = {ctor: "Up"};
    var initMatrix = F3(function (configuration,height,width) {
-      var _p4 = configuration;
-      switch (_p4.ctor)
+      var _p16 = configuration;
+      switch (_p16.ctor)
       {case "Ups": return {ctor: "_Tuple2",_0: A2($Array.repeat,height,A2($Array.repeat,width,Up)),_1: $Maybe.Nothing};
          case "Downs": return {ctor: "_Tuple2",_0: A2($Array.repeat,height,A2($Array.repeat,width,Down)),_1: $Maybe.Nothing};
          default: var spinGenerator = A2($Random.map,function (b) {    return b ? Up : Down;},$Random.bool);
            var spinListGenerator = A2($Random.list,width,spinGenerator);
            var spinMatrixGenerator = A2($Random.list,height,spinListGenerator);
-           var _p5 = A2($Random.generate,spinMatrixGenerator,_p4._0);
-           var spinMatrix = _p5._0;
-           var seed = _p5._1;
+           var _p17 = A2($Random.generate,spinMatrixGenerator,_p16._0);
+           var spinMatrix = _p17._0;
+           var seed = _p17._1;
            return {ctor: "_Tuple2",_0: A2($Array.map,$Array.fromList,$Array.fromList(spinMatrix)),_1: $Maybe.Just(seed)};}
    });
    var initialModel = {randomSeed: $Random.initialSeed(0)
                       ,spinMatrix: $Basics.fst(A3(initMatrix,Random($Random.initialSeed(0)),5,5))
                       ,width: 5
                       ,height: 5
+                      ,steps: 1
                       ,currentConfiguration: Random($Random.initialSeed(0))
                       ,temperature: 5
                       ,magneticFieldStrength: 1
                       ,interactionStrength: 1
                       ,running: false
-                      ,energies: _U.list([])};
-   var flipSpin = function (spin) {    var _p6 = spin;if (_p6.ctor === "Up") {    return Down;} else {    return Up;}};
+                      ,currentStep: 0
+                      ,totalEnergies: _U.list([])
+                      ,totalMagnetizations: _U.list([])
+                      ,avgEnergy: 0
+                      ,avgMagnetization: 0};
+   var flipSpin = function (spin) {    var _p18 = spin;if (_p18.ctor === "Up") {    return Down;} else {    return Up;}};
    var flipSpinAt = F3(function (spinMatrix,i,j) {
       var row = A2($Array.get,i,spinMatrix);
       var spin = A2($Maybe.andThen,row,$Array.get(j));
-      var _p7 = spin;
-      if (_p7.ctor === "Just") {
-            var row$ = A2($Maybe.map,A2($Array.set,j,flipSpin(_p7._0)),row);
-            var _p8 = row$;
-            if (_p8.ctor === "Just") {
-                  return A3($Array.set,i,_p8._0,spinMatrix);
+      var _p19 = spin;
+      if (_p19.ctor === "Just") {
+            var row$ = A2($Maybe.map,A2($Array.set,j,flipSpin(_p19._0)),row);
+            var _p20 = row$;
+            if (_p20.ctor === "Just") {
+                  return A3($Array.set,i,_p20._0,spinMatrix);
                } else {
                   return spinMatrix;
                }
@@ -11263,143 +11403,187 @@ Elm.Main.make = function (_elm) {
             return spinMatrix;
          }
    });
-   var metropolis = F8(function (iterations,seed,energies,magnetizations,spinMatrix,magneticFieldStrength,interactionStrength,temperature) {
-      metropolis: while (true) if (_U.eq(iterations,0)) return {ctor: "_Tuple4",_0: seed,_1: energies,_2: magnetizations,_3: spinMatrix}; else {
-            var _p9 = shape(spinMatrix);
-            var height = _p9._0;
-            var width = _p9._1;
-            var _p10 = A2($Random.generate,A2($Random.pair,A2($Random.$int,0,height),A2($Random.$int,0,width)),seed);
-            var i = _p10._0._0;
-            var j = _p10._0._1;
-            var seed$ = _p10._1;
-            var _p11 = A2($Random.generate,A2($Random.$float,0,1),seed$);
-            var r = _p11._0;
-            var seed$$ = _p11._1;
-            var dE = -2.0 * A5(pointEnergy,spinMatrix,i,j,magneticFieldStrength,interactionStrength);
-            var dM = -2.0 * A3(spinEnergyAt,spinMatrix,i,j);
-            if (_U.cmp(dE,0) < 0 || _U.cmp(r,Math.pow($Basics.e,(0 - dE) / temperature)) < 0) {
-                  var spinMatrix$ = A3(flipSpinAt,spinMatrix,i,j);
-                  var _v18 = iterations - 1,
-                  _v19 = seed$$,
-                  _v20 = A2($Array.push,dE,energies),
-                  _v21 = A2($Array.push,dM,magnetizations),
-                  _v22 = spinMatrix$,
-                  _v23 = magneticFieldStrength,
-                  _v24 = interactionStrength,
-                  _v25 = temperature;
-                  iterations = _v18;
-                  seed = _v19;
-                  energies = _v20;
-                  magnetizations = _v21;
-                  spinMatrix = _v22;
-                  magneticFieldStrength = _v23;
-                  interactionStrength = _v24;
-                  temperature = _v25;
-                  continue metropolis;
-               } else {
-                  var _v26 = iterations - 1,
-                  _v27 = seed$$,
-                  _v28 = A2($Array.push,0,energies),
-                  _v29 = A2($Array.push,0,magnetizations),
-                  _v30 = spinMatrix,
-                  _v31 = magneticFieldStrength,
-                  _v32 = interactionStrength,
-                  _v33 = temperature;
-                  iterations = _v26;
-                  seed = _v27;
-                  energies = _v28;
-                  magnetizations = _v29;
-                  spinMatrix = _v30;
-                  magneticFieldStrength = _v31;
-                  interactionStrength = _v32;
-                  temperature = _v33;
-                  continue metropolis;
-               }
-         }
+   var metropolis = F6(function (spinMatrix,iterations,seed,magneticFieldStrength,interactionStrength,temperature) {
+      var totalMagnetization$ = $Array.fromList(_U.list([totalMagnetization(spinMatrix)]));
+      var totalEnergy$ = $Array.fromList(_U.list([A3(totalEnergy,spinMatrix,magneticFieldStrength,interactionStrength)]));
+      var metropolis$ = F8(function (iterations,seed,energies,magnetizations,spinMatrix,magneticFieldStrength,interactionStrength,temperature) {
+         metropolis$: while (true) if (_U.cmp(iterations,0) < 0) return {ctor: "_Tuple4",_0: seed,_1: energies,_2: magnetizations,_3: spinMatrix}; else {
+               var lastM = A2($Maybe.withDefault,0,A2($Array.get,$Array.length(magnetizations) - 1,magnetizations));
+               var lastE = A2($Maybe.withDefault,0,A2($Array.get,$Array.length(energies) - 1,energies));
+               var _p21 = shape(spinMatrix);
+               var height = _p21._0;
+               var width = _p21._1;
+               var _p22 = A2($Random.generate,A2($Random.pair,A2($Random.$int,0,height - 1),A2($Random.$int,0,width - 1)),seed);
+               var i = _p22._0._0;
+               var j = _p22._0._1;
+               var seed$ = _p22._1;
+               var _p23 = A2($Random.generate,A2($Random.$float,0,1),seed$);
+               var r = _p23._0;
+               var seed$$ = _p23._1;
+               var dE = -2.0 * A5(pointEnergy,spinMatrix,i,j,magneticFieldStrength,interactionStrength);
+               var dM = -2.0 * A3(spinMagnetizationAt,spinMatrix,i,j);
+               if (_U.cmp(dE,0) < 0 || _U.cmp(r,Math.pow($Basics.e,(0 - dE) / temperature)) < 0) {
+                     var spinMatrix$ = A3(flipSpinAt,spinMatrix,i,j);
+                     var _v31 = iterations - 1,
+                     _v32 = seed$$,
+                     _v33 = A2($Array.push,lastE + dE,energies),
+                     _v34 = A2($Array.push,lastM + dM,magnetizations),
+                     _v35 = spinMatrix$,
+                     _v36 = magneticFieldStrength,
+                     _v37 = interactionStrength,
+                     _v38 = temperature;
+                     iterations = _v31;
+                     seed = _v32;
+                     energies = _v33;
+                     magnetizations = _v34;
+                     spinMatrix = _v35;
+                     magneticFieldStrength = _v36;
+                     interactionStrength = _v37;
+                     temperature = _v38;
+                     continue metropolis$;
+                  } else {
+                     var _v39 = iterations - 1,
+                     _v40 = seed$$,
+                     _v41 = A2($Array.push,lastE,energies),
+                     _v42 = A2($Array.push,lastM,magnetizations),
+                     _v43 = spinMatrix,
+                     _v44 = magneticFieldStrength,
+                     _v45 = interactionStrength,
+                     _v46 = temperature;
+                     iterations = _v39;
+                     seed = _v40;
+                     energies = _v41;
+                     magnetizations = _v42;
+                     spinMatrix = _v43;
+                     magneticFieldStrength = _v44;
+                     interactionStrength = _v45;
+                     temperature = _v46;
+                     continue metropolis$;
+                  }
+            }
+      });
+      return A8(metropolis$,iterations,seed,totalEnergy$,totalMagnetization$,spinMatrix,magneticFieldStrength,interactionStrength,temperature);
    });
-   var stepOne = function (model) {
-      var _p12 = A8(metropolis,
-      2,
-      model.randomSeed,
-      $Array.empty,
-      $Array.empty,
-      model.spinMatrix,
-      model.magneticFieldStrength,
-      model.interactionStrength,
-      $Basics.toFloat(model.temperature));
-      var seed = _p12._0;
-      var energies = _p12._1;
-      var spinMatrix = _p12._3;
-      return _U.update(model,{spinMatrix: spinMatrix,randomSeed: seed,energies: A2($List.append,model.energies,$Array.toList(energies))});
-   };
+   var stepN = F2(function (n,model) {
+      var _p24 = A6(metropolis,model.spinMatrix,n,model.randomSeed,model.magneticFieldStrength,model.interactionStrength,$Basics.toFloat(model.temperature));
+      var seed = _p24._0;
+      var energies = _p24._1;
+      var magnetizations = _p24._2;
+      var spinMatrix = _p24._3;
+      var totalEnergies = A2($List.append,
+      model.totalEnergies,
+      $Array.toList(A2($Array.indexedMap,F2(function (i,v) {    return {ctor: "_Tuple2",_0: $Basics.toFloat(model.currentStep + i),_1: v};}),energies)));
+      var avgEnergy = listAverage(A2($List.map,$Basics.snd,A2(listTakeLastPercentage,0.85,totalEnergies)));
+      var totalMagnetizations = A2($List.append,
+      model.totalMagnetizations,
+      $Array.toList(A2($Array.indexedMap,F2(function (i,v) {    return {ctor: "_Tuple2",_0: $Basics.toFloat(model.currentStep + i),_1: v};}),magnetizations)));
+      var avgMagnetization = listAverage(A2($List.map,$Basics.snd,A2(listTakeLastPercentage,0.85,totalMagnetizations)));
+      return _U.update(model,
+      {spinMatrix: spinMatrix
+      ,randomSeed: seed
+      ,totalEnergies: totalEnergies
+      ,totalMagnetizations: totalMagnetizations
+      ,avgEnergy: avgEnergy
+      ,avgMagnetization: avgMagnetization
+      ,currentStep: model.currentStep + n});
+   });
    var update = F2(function (action,model) {
-      var _p13 = action;
-      switch (_p13.ctor)
-      {case "ChangeWidth": var _p16 = _p13._0;
-           if (_U.cmp($String.length(_p16),0) > 0) {
-                 var _p14 = $String.toInt(_p16);
-                 if (_p14.ctor === "Ok") {
-                       var _p15 = _p14._0;
-                       return _U.cmp(_p15,50) < 0 ? _U.update(model,
-                       {width: _p15,spinMatrix: $Basics.fst(A3(initMatrix,model.currentConfiguration,model.height,_p15))}) : model;
+      var _p25 = action;
+      switch (_p25.ctor)
+      {case "ChangeWidth": var _p28 = _p25._0;
+           if (_U.cmp($String.length(_p28),0) > 0) {
+                 var _p26 = $String.toInt(_p28);
+                 if (_p26.ctor === "Ok") {
+                       var _p27 = _p26._0;
+                       return _U.cmp(_p27,50) < 0 ? _U.update(model,
+                       {width: _p27,spinMatrix: $Basics.fst(A3(initMatrix,model.currentConfiguration,model.height,_p27))}) : model;
                     } else {
                        return model;
                     }
               } else return _U.update(model,{width: 0});
-         case "ChangeHeight": var _p19 = _p13._0;
-           if (_U.cmp($String.length(_p19),0) > 0) {
-                 var _p17 = $String.toInt(_p19);
-                 if (_p17.ctor === "Ok") {
-                       var _p18 = _p17._0;
-                       return _U.cmp(_p18,50) < 0 ? _U.update(model,
-                       {height: _p18,spinMatrix: $Basics.fst(A3(initMatrix,model.currentConfiguration,_p18,model.width))}) : model;
+         case "ChangeHeight": var _p31 = _p25._0;
+           if (_U.cmp($String.length(_p31),0) > 0) {
+                 var _p29 = $String.toInt(_p31);
+                 if (_p29.ctor === "Ok") {
+                       var _p30 = _p29._0;
+                       return _U.cmp(_p30,50) < 0 ? _U.update(model,
+                       {height: _p30,spinMatrix: $Basics.fst(A3(initMatrix,model.currentConfiguration,_p30,model.width))}) : model;
                     } else {
                        return model;
                     }
               } else return _U.update(model,{height: 0});
-         case "ChangeTemperature": var _p21 = _p13._0;
-           if (_U.cmp($String.length(_p21),0) > 0) {
-                 var _p20 = $String.toInt(_p21);
-                 if (_p20.ctor === "Ok") {
-                       return _U.update(model,{temperature: _p20._0});
+         case "ChangeTemperature": var _p33 = _p25._0;
+           if (_U.cmp($String.length(_p33),0) > 0) {
+                 var _p32 = $String.toInt(_p33);
+                 if (_p32.ctor === "Ok") {
+                       return _U.update(model,{temperature: _p32._0});
                     } else {
                        return model;
                     }
               } else return _U.update(model,{temperature: 0});
-         case "ChangeMagneticFieldStrength": var _p23 = _p13._0;
-           if (_U.cmp($String.length(_p23),0) > 0) {
-                 var _p22 = $String.toInt(_p23);
-                 if (_p22.ctor === "Ok") {
-                       return _U.update(model,{magneticFieldStrength: $Basics.toFloat(_p22._0)});
+         case "ChangeMagneticFieldStrength": var _p35 = _p25._0;
+           if (_U.cmp($String.length(_p35),0) > 0) {
+                 var _p34 = $String.toInt(_p35);
+                 if (_p34.ctor === "Ok") {
+                       return _U.update(model,{magneticFieldStrength: $Basics.toFloat(_p34._0)});
                     } else {
                        return model;
                     }
               } else return _U.update(model,{magneticFieldStrength: 0});
-         case "ChangeInteractionStrength": var _p25 = _p13._0;
-           if (_U.cmp($String.length(_p25),0) > 0) {
-                 var _p24 = $String.toInt(_p25);
-                 if (_p24.ctor === "Ok") {
-                       return _U.update(model,{interactionStrength: $Basics.toFloat(_p24._0)});
+         case "ChangeInteractionStrength": var _p37 = _p25._0;
+           if (_U.cmp($String.length(_p37),0) > 0) {
+                 var _p36 = $String.toInt(_p37);
+                 if (_p36.ctor === "Ok") {
+                       return _U.update(model,{interactionStrength: $Basics.toFloat(_p36._0)});
                     } else {
                        return model;
                     }
               } else return _U.update(model,{interactionStrength: 0});
-         case "StepOneMetropolis": return stepOne(model);
-         case "RunMetropolis": return model.running ? stepOne(model) : model;
-         case "ChangeConfiguration": var _p29 = _p13._0;
-           var _p26 = _p29;
-           if (_p26.ctor === "Random") {
-                 var _p27 = A3(initMatrix,Random(model.randomSeed),model.height,model.width);
-                 var spinMatrix = _p27._0;
-                 var seed = _p27._1;
-                 var _p28 = seed;
-                 if (_p28.ctor === "Just") {
-                       return _U.update(model,{randomSeed: _p28._0,spinMatrix: spinMatrix});
+         case "StepMetropolis": var model$ = A2(stepN,model.steps,model);
+           return _U.update(model$,{running: false});
+         case "RunMetropolis": if (model.running) {
+                 var limit = 10000;
+                 if (_U.cmp(model.steps,limit) < 1) return A2(stepN,model.steps,model); else {
+                       var model$ = A2(stepN,limit,model);
+                       return _U.update(model$,{steps: limit});
+                    }
+              } else return model;
+         case "ChangeMetropolisSteps": var _p39 = _p25._0;
+           if (_U.cmp($String.length(_p39),0) > 0) {
+                 var _p38 = $String.toInt(_p39);
+                 if (_p38.ctor === "Ok") {
+                       return _U.update(model,{steps: _p38._0});
+                    } else {
+                       return model;
+                    }
+              } else return _U.update(model,{steps: 1});
+         case "ChangeConfiguration": var _p43 = _p25._0;
+           var _p40 = _p43;
+           if (_p40.ctor === "Random") {
+                 var _p41 = A3(initMatrix,Random(model.randomSeed),model.height,model.width);
+                 var spinMatrix = _p41._0;
+                 var seed = _p41._1;
+                 var _p42 = seed;
+                 if (_p42.ctor === "Just") {
+                       return _U.update(model,
+                       {randomSeed: _p42._0
+                       ,spinMatrix: spinMatrix
+                       ,totalEnergies: _U.list([])
+                       ,totalMagnetizations: _U.list([])
+                       ,avgEnergy: 0
+                       ,avgMagnetization: 0
+                       ,currentStep: 0});
                     } else {
                        return model;
                     }
               } else {
-                 return _U.update(model,{spinMatrix: $Basics.fst(A3(initMatrix,_p29,model.height,model.width))});
+                 return _U.update(model,
+                 {spinMatrix: $Basics.fst(A3(initMatrix,_p43,model.height,model.width))
+                 ,totalEnergies: _U.list([])
+                 ,totalMagnetizations: _U.list([])
+                 ,avgEnergy: 0
+                 ,avgMagnetization: 0
+                 ,currentStep: 0});
               }
          case "ToggleRunning": return _U.update(model,{running: $Basics.not(model.running)});
          default: return model;}
@@ -11408,15 +11592,29 @@ Elm.Main.make = function (_elm) {
                              ,update: F2(function (m,a) {    return function (m) {    return {ctor: "_Tuple2",_0: m,_1: $Effects.none};}(A2(update,m,a));})
                              ,view: view
                              ,inputs: _U.list([runIsing])});
-   var runIsing = function () {    var a = app.model;return A2($Signal.map,function (_p30) {    return RunMetropolis;},$Time.every(20 * $Time.millisecond));}();
    var main = app.html;
-   var energy = Elm.Native.Port.make(_elm).outboundSignal("energy",
+   var totalEnergies = Elm.Native.Port.make(_elm).outboundSignal("totalEnergies",
    function (v) {
       return Elm.Native.List.make(_elm).toArray(v).map(function (v) {    return {index: v.index,value: v.value};});
    },
    A2($Signal.sampleOn,
-   $Time.every(5 * $Time.second),
-   A2($Signal.map,function (m) {    return A2($List.indexedMap,F2(function (i,v) {    return {index: i,value: v};}),m.energies);},app.model)));
+   samplingSignal,
+   A2($Signal.map,
+   function (m) {
+      return A2($List.map,function (_p44) {    var _p45 = _p44;return {index: _p45._0,value: _p45._1};},A2(sampledTo,30,m.totalEnergies));
+   },
+   app.model)));
+   var totalMagnetizations = Elm.Native.Port.make(_elm).outboundSignal("totalMagnetizations",
+   function (v) {
+      return Elm.Native.List.make(_elm).toArray(v).map(function (v) {    return {index: v.index,value: v.value};});
+   },
+   A2($Signal.sampleOn,
+   samplingSignal,
+   A2($Signal.map,
+   function (m) {
+      return A2($List.map,function (_p46) {    var _p47 = _p46;return {index: _p47._0,value: _p47._1};},A2(sampledTo,30,m.totalMagnetizations));
+   },
+   app.model)));
    return _elm.Main.values = {_op: _op
                              ,Up: Up
                              ,Down: Down
@@ -11427,12 +11625,13 @@ Elm.Main.make = function (_elm) {
                              ,shape: shape
                              ,initMatrix: initMatrix
                              ,flipSpinAt: flipSpinAt
-                             ,spinEnergy: spinEnergy
                              ,flipSpin: flipSpin
                              ,boundaryCondition: boundaryCondition
-                             ,spinEnergyAt: spinEnergyAt
+                             ,spinMagnetization: spinMagnetization
+                             ,spinMagnetizationAt: spinMagnetizationAt
+                             ,totalMagnetization: totalMagnetization
                              ,pointEnergy: pointEnergy
-                             ,fullEnergy: fullEnergy
+                             ,totalEnergy: totalEnergy
                              ,metropolis: metropolis
                              ,spinToDiv: spinToDiv
                              ,NoOp: NoOp
@@ -11442,18 +11641,27 @@ Elm.Main.make = function (_elm) {
                              ,ChangeTemperature: ChangeTemperature
                              ,ChangeMagneticFieldStrength: ChangeMagneticFieldStrength
                              ,ChangeInteractionStrength: ChangeInteractionStrength
-                             ,StepOneMetropolis: StepOneMetropolis
+                             ,StepMetropolis: StepMetropolis
                              ,RunMetropolis: RunMetropolis
-                             ,ChangeWindowSize: ChangeWindowSize
+                             ,ChangeMetropolisSteps: ChangeMetropolisSteps
                              ,ToggleRunning: ToggleRunning
                              ,Model: Model
                              ,initialModel: initialModel
+                             ,floatToString: floatToString
                              ,numberInputWithLabel: numberInputWithLabel
                              ,view: view
-                             ,stepOne: stepOne
+                             ,listTakeLast: listTakeLast
+                             ,listTakeLastPercentage: listTakeLastPercentage
+                             ,listSample: listSample
+                             ,sampledTo: sampledTo
+                             ,listAverage: listAverage
+                             ,tupleListAverage: tupleListAverage
+                             ,standardDeviation: standardDeviation
+                             ,stepN: stepN
                              ,update: update
                              ,runIsing: runIsing
                              ,app: app
                              ,main: main
-                             ,Point: Point};
+                             ,Point: Point
+                             ,samplingSignal: samplingSignal};
 };
