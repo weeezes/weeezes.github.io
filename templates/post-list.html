@@ -1,0 +1,11 @@
+<ul class="post-list">
+    $for(posts)$
+        <li>
+            <a href="$url$">
+                <div class="post-sample">
+                    $partial("templates/post-sample.html")$
+                </div>
+            </a>
+        </li>
+    $endfor$
+</ul>

@@ -1,0 +1,18 @@
+---
+title: Archive
+---
+
+$partial("templates/post-list.html")$
+
+<nav>
+    <div class="archive-button">
+        $if(previousPageNum)$
+        <a href="$previousPageUrl$">◀</a>
+        $endif$&nbsp;
+    </div>
+    <div class="archive-button">
+        $if(nextPageNum)$
+        <a href="$nextPageUrl$">▶</a>
+        $endif$&nbsp;
+    </div>
+</nav>
