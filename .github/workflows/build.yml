@@ -1,0 +1,26 @@
+name: Build site
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install nix
+        run: |
+          sh <(curl https://nixos.org/nix/install) --no-daemon
+
+      - uses: actions/checkout@v2
+        with:
+          path: 'repo'
+
+      - name: Build Hakyll
+        run: |
+          . /home/runner/.nix-profile/etc/profile.d/nix.sh
+
+          cd repo
+          nix-build
+
+      - name: Build site
+        run: |
+          repo/result/bin/site build
