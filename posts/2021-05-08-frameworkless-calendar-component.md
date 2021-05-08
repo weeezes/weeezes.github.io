@@ -27,6 +27,13 @@ The [TypeScript: Handbook](https://www.typescriptlang.org/docs/handbook/intro.ht
 
 As a more complex example I built a calendar component where you can look at different months and select dates: [weeezes/frameworkless-calendar](https://github.com/weeezes/frameworkless-calendar)
 
+<p class="codepen" data-height="265" data-theme-id="light" data-default-tab="js,result" data-user="weeezes" data-slug-hash="xxqbvOo" data-preview="true" style="height: 265px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid; margin: 1em 0; padding: 1em;" data-pen-title="Frameworkless Calendar Component">
+  <span>See the Pen <a href="https://codepen.io/weeezes/pen/xxqbvOo">
+  Frameworkless Calendar Component</a> by Vesa (<a href="https://codepen.io/weeezes">@weeezes</a>)
+  on <a href="https://codepen.io">CodePen</a>.</span>
+</p>
+<script async src="https://cpwebassets.codepen.io/assets/embed/ei.js"></script>
+
 The amount of boilerplate might look a bit excessive, but what I like about this is that it is all there laid out without dependencies. You could start hiding some of the junk and end up with your own framework, that could be a fun experiment.
 
 It is relatively simple and probably will work for me for quite long, as I am not planning on writing any extremely complex web apps. I feel like this was a genuinely nice learning experience!
