@@ -4,7 +4,15 @@
         <meta charset="utf-8">
         <meta http-equiv="x-ua-compatible" content="ie=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>My Hakyll Blog - $title$</title>
+        <meta property="og:title" content="$title$" />
+        $if(teaser)$
+        <meta
+          property="og:description"
+          content="$teaser$"
+        />
+        $endif$
+
+        <title>$title$</title>
         <link rel="stylesheet" href="/css/default.css" />
         <link rel="stylesheet" href="/css/github-gist.min.css" />
         <script src="/scripts/highlight.min.js"></script>

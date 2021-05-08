@@ -1,10 +1,16 @@
 ---
-title: Frameworkless calendar component
+title: Frameworkless calendar component in TypeScript
+teaser: In this post I'll share a small example of building simple components for a web app in pure TypeScript, based on experimenting with the language while trying to avoid having to learn frameworks at the same time.
+
 ---
+
+_In this post I'll share a small example of building simple components for a web app in pure TypeScript, based on experimenting with the language while trying to avoid having to learn frameworks at the same time._
+
+<br/>
 
 I wanted to learn TypeScript but quickly realized I did not want to learn one of the frontend frameworks at the same time. I wanted to specifically learn to write TypeScript, not React+TypeScript or Vue+TypeScript, because I am lazy. I still needed something more than just a Hello World. I’m absolutely illiterate when it comes to web development.
 
-Minimal example, the click-counter example:
+Minimal example, the click-counter:
 
 <p class="codepen" data-height="265" data-theme-id="light" data-default-tab="js,result" data-user="weeezes" data-slug-hash="vYgoKqW" data-preview="true" style="height: 265px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid; margin: 1em 0; padding: 1em;" data-pen-title="Frameworkless-click">
   <span>See the Pen <a href="https://codepen.io/weeezes/pen/vYgoKqW">
