@@ -1,0 +1,39 @@
+name: Update Github Pages in master
+on:
+  push:
+    branches:
+      - trunk
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          path: 'repo'
+
+      - uses: cachix/install-nix-action@v13
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Build Hakyll
+        run: |
+          cd repo
+          nix-build
+
+      - name: Update Github Pages content
+        run: |
+          cd repo
+          result/bin/site build
+
+          git checkout master
+
+          cp -r _site/* .
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v3
+        with:
+          commit-message: Update Github Pages content
+          title: '[Action] Update Github Pages content'
+
