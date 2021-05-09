@@ -27,10 +27,11 @@ jobs:
           cd repo
           result/bin/site build
 
-      - name: Checkout tools repo
+      - name: Checkout branch containing Github Pages content
         uses: actions/checkout@v2
         with:
           path: pages-branch
+          ref: master
 
       - name: Update Github Pages content
         run: |
