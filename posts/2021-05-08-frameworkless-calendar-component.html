@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta property="og:title" content="Frameworkless calendar component in TypeScript" />
+        
+        <meta property="og:description" content="In this post I'll share a small example of building simple components for a web app in pure TypeScript, based on experimenting with the language while trying to avoid having to learn frameworks at the same time." />
+        
+
+        <title>Frameworkless calendar component in TypeScript</title>
+        <link rel="stylesheet" href="../css/default.css" />
+        <link rel="stylesheet" href="../css/github-gist.min.css" />
+        <script src="../scripts/highlight.min.js"></script>
+    </head>
+    <body>
+        <script>hljs.initHighlightingOnLoad();</script>
+        <header>
+            <div class="logo">
+                <a href="https://weeezes.github.io/">
+                    <img src="../images/w-logo.svg" />
+                </a>
+            </div>
+            <nav>
+                <a href="https://github.com/weeezes"><img class="texticon" src="../images/icons/github.svg" width="16" height="16" /><div class="social-link">GitHub</div></a>
+                <a href="https://www.linkedin.com/in/vesa-hagstrom"><img class="texticon" src="../images/icons/linkedin.svg" width="16" height="16" /><div class="social-link">LinkedIn</div></a>
+            </nav>
+        </header>
+
+        <main role="main">
+            <article>
+    <h1>Frameworkless calendar component in TypeScript</h1>
+    <section class="header">
+        2021-05-08
+    </section>
+    <section>
+        <p><em>In this post I’ll share a small example of building simple components for a web app in pure TypeScript, based on experimenting with the language while trying to avoid having to learn frameworks at the same time.</em></p>
+<p><br /></p>
+<p>I wanted to learn TypeScript but quickly realized I did not want to learn one of the frontend frameworks at the same time. I wanted to specifically learn to write TypeScript, not React+TypeScript or Vue+TypeScript, because I am lazy. I still needed something more than just a Hello World. I’m absolutely illiterate when it comes to web development.</p>
+<p>Minimal example, the click-counter:</p>
+<p class="codepen" data-height="265" data-theme-id="light" data-default-tab="js,result" data-user="weeezes" data-slug-hash="vYgoKqW" data-preview="true" style="height: 265px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid; margin: 1em 0; padding: 1em;" data-pen-title="Frameworkless-click">
+<span>See the Pen <a href="https://codepen.io/weeezes/pen/vYgoKqW"> Frameworkless-click</a> by Vesa (<a href="https://codepen.io/weeezes"><span class="citation" data-cites="weeezes">@weeezes</span></a>) on <a href="https://codepen.io">CodePen</a>.</span>
+</p>
+<script async src="https://cpwebassets.codepen.io/assets/embed/ei.js"></script>
+<p>I found this <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy">Proxy</a> object definition that seemed particularly useful for data bandings. The handler object lets us trigger rendering whenever values change. This is what the whole idea is based on.</p>
+<p>The <code>Component</code> interface describes an object that has a state, some subscribers that listen to events, a handler that expresses how state changes will be handled and a method for rendering the component in the DOM.</p>
+<p>The <code>Event</code> interface is trivial, but the <a href="https://www.typescriptlang.org/docs/handbook/2/generics.html">type variable</a> <code>K</code> is important in binding together the types of events the <code>Component</code> type can emit, and what other <code>Components</code> subscribe to, while keeping things properly type checked. This was a good dive into many of the features of TypeScript.</p>
+<p>The example uses <a href="https://www.typescriptlang.org/docs/handbook/2/everyday-types.html#literal-types">literal types</a> to describe the different kinds of events, in this case the only event is <code>"Clicked"</code>. This way you cannot accidentally use an unknown type of event without the compiler letting you know. That’s fun and powerful compared to using plain strings.</p>
+<p>The subscribers field contains an object with keys being the different values for the event kinds. This uses another interesting feature called <a href="https://www.typescriptlang.org/docs/handbook/advanced-types.html#mapped-types">mapped types</a>, which allows us to create new object types based on arbitrary keys, in this case our <code>ClickEventKinds</code> literal type. It resembles another feature called <a href="https://www.typescriptlang.org/docs/handbook/advanced-types.html#index-types">index types and index signatures</a>, but mapped types constrain the available properties to the ones in the provided list. The actual events are created as what is called a <a href="https://www.typescriptlang.org/docs/handbook/release-notes/typescript-2-0.html#tagged-union-types">tagged union type</a> and the event objects can be matched by the their <code>kind</code>.</p>
+<p>The <a href="https://www.typescriptlang.org/docs/handbook/intro.html">TypeScript: Handbook</a> is an extremely helpful resource.</p>
+<p>As a more complex example I built a calendar component where you can look at different months and select dates: <a href="https://github.com/weeezes/frameworkless-calendar">weeezes/frameworkless-calendar</a></p>
+<p class="codepen" data-height="265" data-theme-id="light" data-default-tab="js,result" data-user="weeezes" data-slug-hash="xxqbvOo" data-preview="true" style="height: 265px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid; margin: 1em 0; padding: 1em;" data-pen-title="Frameworkless Calendar Component">
+<span>See the Pen <a href="https://codepen.io/weeezes/pen/xxqbvOo"> Frameworkless Calendar Component</a> by Vesa (<a href="https://codepen.io/weeezes"><span class="citation" data-cites="weeezes">@weeezes</span></a>) on <a href="https://codepen.io">CodePen</a>.</span>
+</p>
+<script async src="https://cpwebassets.codepen.io/assets/embed/ei.js"></script>
+<p>The amount of boilerplate might look a bit excessive, but what I like about this is that it is all there laid out without dependencies. You could start hiding some of the junk and end up with your own framework, that could be a fun experiment.</p>
+<p>It is relatively simple and probably will work for me for quite long, as I am not planning on writing any extremely complex web apps. I feel like this was a genuinely nice learning experience!</p>
+    </section>
+</article>
+
+        </main>
+
+        <footer>
+            <a href="http://weeezes.github.io/">-</a>
+        </footer>
+    </body>
+</html>
