@@ -22,18 +22,23 @@ jobs:
           cd repo
           nix-build
 
-      - name: Update Github Pages content
+      - name: Build site
         run: |
           cd repo
           result/bin/site build
 
-          git checkout master
+      - name: Checkout tools repo
+        uses: actions/checkout@v2
+        with:
+          path: pages-branch
 
-          cp -r _site/* .
+      - name: Update Github Pages content
+        run: |
+          cp -r repo/_site/* pages-branch/
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v3
         with:
+          path: pages-branch
           commit-message: Update Github Pages content
           title: '[Action] Update Github Pages content'
-
